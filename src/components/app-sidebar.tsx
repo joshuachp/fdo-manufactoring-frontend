@@ -30,16 +30,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     });
 
     useEffect(() => {
-        fetch("http://127.0.0.1:8041/health").then((resp) => {
-            console.trace(`server status${resp.status}`)
-
-            return resp.json();
-        }).then((resp) => {
-            setStatus({ desc: resp.status ?? "OK", ok: true })
+        fetch("http://127.0.0.1:8041/health", { mode: "no-cors" }).then((resp) => {
+            console.trace(`server status: ${resp.status}`);
+            setStatus({ desc: "OK", ok: true });
         }).catch((error) => {
-            console.error("couldn't get status", error)
+            console.error("couldn't get status", error);
 
-            setStatus({ desc: "error", ok: false })
+            setStatus({ desc: "error", ok: false });
         });
     }, [])
 

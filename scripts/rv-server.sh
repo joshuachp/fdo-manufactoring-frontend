@@ -12,7 +12,6 @@ else
 fi
 
 $container run \
-    --replace \
     --detach \
     --name fdo-rendezvous \
     --user 0:0 \
