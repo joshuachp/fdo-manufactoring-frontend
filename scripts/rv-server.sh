@@ -5,7 +5,13 @@ set -exEuo pipefail
 # Trap -e errors
 trap 'echo "Exit status $? at line $LINENO from: $BASH_COMMAND"' ERR
 
-podman run \
+if which podman; then
+    container=podman
+else
+    container=docker
+fi
+
+$container run \
     --replace \
     --detach \
     --name fdo-rendezvous \
