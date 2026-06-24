@@ -29,28 +29,77 @@ export const RendezvousInfoListSchema = z.array(RendezvousInfoSchema);
 
 export type RendezvousInfo = z.infer<typeof RendezvousInfoSchema>;
 
-// Loader function to fetch and validate the rendezvous info
-export async function rvInfoLoader() {
+// Define the Zod schema for validating the Vouchers payload
+export const VoucherSchema = z.object({
+    guid: z.string(),
+    device_info: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+});
+
+export const VoucherListSchema = z.array(VoucherSchema);
+
+export type Voucher = z.infer<typeof VoucherSchema>;
+
+export type LoaderData = {
+    rvData: RendezvousInfo[] | null;
+    rvError: string | null;
+    voucherData: Voucher[] | null;
+    voucherError: string | null;
+};
+
+// Loader function to fetch and validate the rendezvous info and vouchers
+export async function rvInfoLoader(): Promise<LoaderData> {
     try {
-        const response = await fetch("http://127.0.0.1:8038/api/v1/rvinfo");
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const [rvRes, voucherRes] = await Promise.all([
+            fetch("http://127.0.0.1:8038/api/v1/rvinfo"),
+            fetch("http://127.0.0.1:8038/api/v1/vouchers")
+        ]);
+
+        let rvData: RendezvousInfo[] | null = null;
+        let rvError: string | null = null;
+        if (!rvRes.ok) {
+            rvError = `Rendezvous API returned status ${rvRes.status}`;
+        } else {
+            const json = await rvRes.json();
+            const parsed = RendezvousInfoListSchema.safeParse(json);
+            if (!parsed.success) {
+                console.error("Rendezvous Validation Error:", parsed.error);
+                rvError = "Invalid rendezvous data structure received from API";
+            } else {
+                rvData = parsed.data;
+            }
         }
-        const json = await response.json();
-        const parsed = RendezvousInfoListSchema.safeParse(json);
-        if (!parsed.success) {
-            console.error("Zod Validation Error:", parsed.error);
-            return { data: null, error: "Invalid data structure received from API" };
+
+        let voucherData: Voucher[] | null = null;
+        let voucherError: string | null = null;
+        if (!voucherRes.ok) {
+            voucherError = `Vouchers API returned status ${voucherRes.status}`;
+        } else {
+            const json = await voucherRes.json();
+            const parsed = VoucherListSchema.safeParse(json);
+            if (!parsed.success) {
+                console.error("Voucher Validation Error:", parsed.error);
+                voucherError = "Invalid voucher data structure received from API";
+            } else {
+                voucherData = parsed.data;
+            }
         }
-        return { data: parsed.data, error: null };
+
+        return { rvData, rvError, voucherData, voucherError };
     } catch (err) {
         console.error("Fetch Error:", err);
-        return { data: null, error: "Failed to fetch rendezvous information from API" };
+        return {
+            rvData: null,
+            rvError: "Failed to fetch data from API",
+            voucherData: null,
+            voucherError: "Failed to fetch data from API"
+        };
     }
 }
 
 function App() {
-    const { data, error } = useLoaderData() as { data: RendezvousInfo[] | null; error: string | null };
+    const { rvData, rvError, voucherData, voucherError } = useLoaderData() as LoaderData;
 
     return (
         <ThemeProvider defaultTheme='system' storageKey='app-ui-theme'>
@@ -76,12 +125,12 @@ function App() {
                             </div>
                         </div>
 
-                        {error ? (
+                        {rvError ? (
                             <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive flex flex-col gap-1 animate-in fade-in duration-300">
                                 <span className="font-semibold">Loading Error</span>
-                                <span>{error}</span>
+                                <span>{rvError}</span>
                             </div>
-                        ) : data && data.length > 0 ? (
+                        ) : rvData && rvData.length > 0 ? (
                             <div className="rounded-lg border bg-card overflow-hidden shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <Table>
                                     <TableHeader>
@@ -94,7 +143,7 @@ function App() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {data.map((item, idx) => (
+                                        {rvData.map((item, idx) => (
                                             <TableRow key={idx} className="hover:bg-muted/50 transition-colors">
                                                 <TableCell className="font-medium font-mono text-foreground">{item.dns}</TableCell>
                                                 <TableCell>
@@ -116,6 +165,52 @@ function App() {
                         ) : (
                             <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground animate-in fade-in duration-300">
                                 No rendezvous configurations found.
+                            </div>
+                        )}
+
+                        {/* Vouchers Section */}
+                        <div className="flex flex-col gap-2 border-b pb-4 pt-4">
+                            <h2 className="text-2xl font-bold tracking-tight">Vouchers</h2>
+                            <p className="text-muted-foreground text-sm">
+                                View active ownership vouchers registered in the manufacturing server.
+                            </p>
+                        </div>
+
+                        {voucherError ? (
+                            <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive flex flex-col gap-1 animate-in fade-in duration-300">
+                                <span className="font-semibold">Loading Error</span>
+                                <span>{voucherError}</span>
+                            </div>
+                        ) : voucherData && voucherData.length > 0 ? (
+                            <div className="rounded-lg border bg-card overflow-hidden shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="font-semibold">GUID</TableHead>
+                                            <TableHead className="font-semibold">Device Info</TableHead>
+                                            <TableHead className="font-semibold text-right">Created At</TableHead>
+                                            <TableHead className="font-semibold text-right">Updated At</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {voucherData.map((item, idx) => (
+                                            <TableRow key={idx} className="hover:bg-muted/50 transition-colors">
+                                                <TableCell className="font-medium font-mono text-foreground text-xs">{item.guid}</TableCell>
+                                                <TableCell className="text-muted-foreground font-mono text-xs">{item.device_info}</TableCell>
+                                                <TableCell className="text-right font-mono text-muted-foreground text-xs">
+                                                    {new Date(item.created_at).toLocaleString()}
+                                                </TableCell>
+                                                <TableCell className="text-right font-mono text-muted-foreground text-xs">
+                                                    {new Date(item.updated_at).toLocaleString()}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        ) : (
+                            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground animate-in fade-in duration-300">
+                                No vouchers found.
                             </div>
                         )}
                     </main>
