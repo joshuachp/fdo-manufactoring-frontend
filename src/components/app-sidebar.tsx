@@ -1,11 +1,17 @@
-import { Server } from "lucide-react";
+import { Server, LayoutDashboard, Settings } from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
     SidebarHeader,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuItem,
+    SidebarMenuButton,
 } from "@/components/ui/sidebar";
+import { Link, useLocation } from "react-router";
 import {
     Item,
     ItemSeparator,
@@ -55,7 +61,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const defferStatus = useDeferredValue(status);
 
     useEffect(() => {
-        fetch("http://127.0.0.1:8041/health", {
+        fetch("http://127.0.0.1:8038/health", {
             headers: {
                 accept: "application/json",
                 "access-control-allow-origin": "http://127.0.0.1:8041"
@@ -94,12 +100,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             });
     }, []);
 
+    const location = useLocation();
+
     return (
         <Sidebar collapsible="offcanvas" {...props}>
             <SidebarHeader />
             <SidebarContent>
-                <SidebarGroup />
-                <SidebarGroup />
+                <SidebarGroup>
+                    <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild isActive={location.pathname === "/"}>
+                                    <Link to="/">
+                                        <LayoutDashboard className="size-4" />
+                                        <span>Rendezvous Info</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild isActive={location.pathname === "/rvinfo"}>
+                                    <Link to="/rvinfo">
+                                        <Settings className="size-4" />
+                                        <span>Configure RV Info</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
                 <ItemSeparator />

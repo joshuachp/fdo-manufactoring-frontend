@@ -3,8 +3,10 @@ import AppSidebar from './components/app-sidebar'
 import { SiteHeader } from './components/site-header'
 import { ThemeProvider } from './components/theme/provider'
 import { SidebarInset, SidebarProvider } from './components/ui/sidebar'
-import { useLoaderData } from 'react-router'
+import { useLoaderData, Link } from 'react-router'
 import { z } from 'zod'
+import { Button } from './components/ui/button'
+import { Settings } from 'lucide-react'
 import {
     Table,
     TableBody,
@@ -57,11 +59,21 @@ function App() {
                 <SidebarInset>
                     <SiteHeader />
                     <main className="p-6 space-y-6">
-                        <div className="flex flex-col gap-2">
-                            <h2 className="text-2xl font-bold tracking-tight">Rendezvous Information</h2>
-                            <p className="text-muted-foreground text-sm">
-                                View and manage active rendezvous configurations for devices and owner ports.
-                            </p>
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-4">
+                            <div className="flex flex-col gap-2">
+                                <h2 className="text-2xl font-bold tracking-tight">Rendezvous Information</h2>
+                                <p className="text-muted-foreground text-sm">
+                                    View and manage active rendezvous configurations for devices and owner ports.
+                                </p>
+                            </div>
+                            <div className="shrink-0">
+                                <Link to="/rvinfo">
+                                    <Button variant="default" size="sm">
+                                        <Settings className="mr-1.5 size-3.5" />
+                                        Edit Settings
+                                    </Button>
+                                </Link>
+                            </div>
                         </div>
 
                         {error ? (
