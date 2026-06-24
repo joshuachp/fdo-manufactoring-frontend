@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import AppSidebar from './components/app-sidebar'
 import { SiteHeader } from './components/site-header'
@@ -6,7 +7,7 @@ import { SidebarInset, SidebarProvider } from './components/ui/sidebar'
 import { useLoaderData, Link } from 'react-router'
 import { z } from 'zod'
 import { Button } from './components/ui/button'
-import { Settings, Download } from 'lucide-react'
+import { Settings, Download, Eye } from 'lucide-react'
 import {
     Table,
     TableBody,
@@ -15,6 +16,14 @@ import {
     TableHeader,
     TableRow,
 } from './components/ui/table'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from './components/ui/dialog'
 
 // Define the Zod schema for validating the API payload
 export const RendezvousInfoSchema = z.object({
@@ -98,8 +107,82 @@ export async function rvInfoLoader(): Promise<LoaderData> {
     }
 }
 
+/**
+ * Modal dialog to view a PEM-encoded ownership voucher fetched from the API.
+ */
+function VoucherViewDialog({
+    guid,
+    open,
+    onOpenChange,
+}: {
+    guid: string
+    open: boolean
+    onOpenChange: (open: boolean) => void
+}) {
+    const [pemData, setPemData] = useState<string | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const fetchVoucher = useCallback(async () => {
+        setLoading(true)
+        setError(null)
+        setPemData(null)
+        try {
+            const res = await fetch(`http://127.0.0.1:8038/api/v1/vouchers/${guid}`)
+            if (!res.ok) {
+                setError(`API returned status ${res.status}`)
+                return
+            }
+            const text = await res.text()
+            setPemData(text)
+        } catch (err) {
+            console.error("Failed to fetch voucher:", err)
+            setError("Failed to fetch voucher from API")
+        } finally {
+            setLoading(false)
+        }
+    }, [guid])
+
+    useEffect(() => {
+        if (open) {
+            fetchVoucher()
+        }
+    }, [open, fetchVoucher])
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Ownership Voucher</DialogTitle>
+                    <DialogDescription>
+                        PEM-encoded ownership voucher for <span className="font-mono">{guid}</span>
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="overflow-auto flex-1 min-h-0">
+                    {loading ? (
+                        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                            Loading voucher…
+                        </div>
+                    ) : error ? (
+                        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive flex flex-col gap-1">
+                            <span className="font-semibold">Error</span>
+                            <span>{error}</span>
+                        </div>
+                    ) : pemData ? (
+                        <pre className="rounded-lg border bg-muted/50 p-4 overflow-auto text-xs leading-relaxed">
+                            <code>{pemData}</code>
+                        </pre>
+                    ) : null}
+                </div>
+                <DialogFooter showCloseButton />
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 function App() {
     const { rvData, rvError, voucherData, voucherError } = useLoaderData() as LoaderData;
+    const [viewVoucher, setViewVoucher] = useState<string | null>(null);
 
     return (
         <ThemeProvider defaultTheme='system' storageKey='app-ui-theme'>
@@ -205,16 +288,27 @@ function App() {
                                                     {new Date(item.updated_at).toLocaleString()}
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <a
-                                                        href={`http://127.0.0.1:8038/api/v1/vouchers/${item.guid}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        title="Download ownership voucher"
-                                                    >
-                                                        <Button variant="outline" size="icon-xs" type="button">
-                                                            <Download className="size-3" />
+                                                    <div className="inline-flex gap-1">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon-xs"
+                                                            type="button"
+                                                            title="View ownership voucher"
+                                                            onClick={() => setViewVoucher(item.guid)}
+                                                        >
+                                                            <Eye className="size-3" />
                                                         </Button>
-                                                    </a>
+                                                        <a
+                                                            href={`http://127.0.0.1:8038/api/v1/vouchers/${item.guid}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            title="Download ownership voucher"
+                                                        >
+                                                            <Button variant="outline" size="icon-xs" type="button">
+                                                                <Download className="size-3" />
+                                                            </Button>
+                                                        </a>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -229,6 +323,15 @@ function App() {
                     </main>
                 </SidebarInset>
             </SidebarProvider>
+
+            {/* Voucher view modal — rendered outside the layout so it overlays everything */}
+            {viewVoucher && (
+                <VoucherViewDialog
+                    guid={viewVoucher}
+                    open={!!viewVoucher}
+                    onOpenChange={(open) => { if (!open) setViewVoucher(null) }}
+                />
+            )}
         </ThemeProvider >
     )
 }
