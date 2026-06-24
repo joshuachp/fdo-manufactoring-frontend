@@ -1,5 +1,5 @@
 version: 3
 
 tasks:
-  start-rv-server:
-    cmd: ./scripts/rv-server.sh
+  start-mf-server:
+    cmd: ./scripts/mf-server.sh
