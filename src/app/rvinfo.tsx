@@ -7,16 +7,16 @@ import { ThemeProvider } from "@/components/theme/provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
-import { type RendezvousInfo } from "@/App";
+import { type RendezvousInfo, type LoaderData } from "@/App";
 import { Plus, Trash2, Save, ArrowLeft } from "lucide-react";
 
 export function EditRvInfo() {
-    const loaderData = useLoaderData() as { data: RendezvousInfo[] | null; error: string | null };
+    const loaderData = useLoaderData() as LoaderData;
     const navigate = useNavigate();
 
     const [items, setItems] = useState<RendezvousInfo[]>(() => {
-        if (loaderData.data && loaderData.data.length > 0) {
-            return loaderData.data.map(item => ({ ...item }));
+        if (loaderData.rvData && loaderData.rvData.length > 0) {
+            return loaderData.rvData.map(item => ({ ...item }));
         }
         return [{ dns: "", device_port: "443", owner_port: "443", protocol: "https", delay_seconds: 10 }];
     });

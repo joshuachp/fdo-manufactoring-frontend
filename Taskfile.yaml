@@ -3,3 +3,5 @@ version: 3
 tasks:
   start-mf-server:
     cmd: ./scripts/mf-server.sh
+  client-di:
+    cmd: ./scripts/di-go-fdo.sh
