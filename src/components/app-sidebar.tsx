@@ -1,11 +1,11 @@
-import { Server } from "lucide-react"
+import { Server } from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
     SidebarHeader,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 import {
     Item,
     ItemSeparator,
@@ -14,32 +14,85 @@ import {
     ItemTitle,
     ItemContent,
     ItemActions,
-} from "@/components/ui/item"
-import { useEffect, useState } from "react";
+} from "@/components/ui/item";
+import { Suspense, useDeferredValue, useEffect, useState } from "react";
 import DotPulse from "./dot-pulse";
 
-interface Status {
-    desc: string,
-    ok: boolean
+import * as z from "zod";
+
+const Status = z.object({
+    version: z.string(),
+    status: z.string(),
+});
+
+interface ServerStatusProps {
+    desc: string;
+    isOk: boolean;
+}
+
+export function ServerStatus({ desc, isOk }: ServerStatusProps) {
+    return (
+        <Item>
+            <ItemMedia variant="icon">
+                <Server />
+            </ItemMedia>
+            <ItemContent>
+                <ItemTitle>Status</ItemTitle>
+                <ItemDescription>{desc}</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+                <DotPulse ok={isOk} />
+            </ItemActions>
+        </Item>
+    );
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-    const [status, setStatus] = useState<Status>({
-        desc: "loading..",
-        ok: true
+    const [status, setStatus] = useState<ServerStatusProps>({
+        desc: "",
+        isOk: true,
     });
+    const defferStatus = useDeferredValue(status);
 
     useEffect(() => {
-        fetch("http://127.0.0.1:8041/health", { mode: "no-cors" }).then((resp) => {
-            console.trace(`server status: ${resp.status}`);
+        fetch("http://127.0.0.1:8041/health", {
+            headers: {
+                accept: "application/json",
+                "access-control-allow-origin": "http://127.0.0.1:8041"
+            }
+        })
+            .then((resp) => {
+                console.trace(`server status: ${resp.status}`);
 
-            setStatus({ desc: "OK", ok: true });
-        }).catch((error) => {
-            console.error("couldn't get status", error);
+                return resp.json();
+            })
+            .then((resp) => {
+                console.log(resp)
+                const result = Status.safeParse(resp);
 
-            setStatus({ desc: "error", ok: false });
-        });
-    }, [])
+                if (!result.success) {
+                    console.error(result.error);
+
+                    setStatus({
+                        isOk: false,
+                        desc: "Error",
+                    });
+                } else {
+                    setStatus({
+                        isOk: result.data.status == "OK",
+                        desc: `${result.data.version} - ${result.data.status}`,
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error("couldn't get status", error);
+
+                setStatus({
+                    isOk: false,
+                    desc: "Error",
+                });
+            });
+    }, []);
 
     return (
         <Sidebar collapsible="offcanvas" {...props}>
@@ -48,23 +101,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarGroup />
                 <SidebarGroup />
             </SidebarContent>
-            <SidebarFooter >
+            <SidebarFooter>
                 <ItemSeparator />
-                <Item>
-                    <ItemMedia variant="icon">
-                        <Server />
-                    </ItemMedia>
-                    <ItemContent>
-                        <ItemTitle>Status</ItemTitle>
-                        <ItemDescription>{status.desc}</ItemDescription>
-                    </ItemContent>
-                    <ItemActions>
-                        <DotPulse ok={status.ok} />
-                    </ItemActions>
-                </Item>
+                <Suspense fallback={<h1>loading...</h1>}>
+                    <ServerStatus {...defferStatus} />
+                </Suspense>
             </SidebarFooter>
         </Sidebar>
-    )
+    );
 }
 
 export default AppSidebar;
