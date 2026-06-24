@@ -6,7 +6,7 @@ import { SidebarInset, SidebarProvider } from './components/ui/sidebar'
 import { useLoaderData, Link } from 'react-router'
 import { z } from 'zod'
 import { Button } from './components/ui/button'
-import { Settings } from 'lucide-react'
+import { Settings, Download } from 'lucide-react'
 import {
     Table,
     TableBody,
@@ -190,6 +190,7 @@ function App() {
                                             <TableHead className="font-semibold">Device Info</TableHead>
                                             <TableHead className="font-semibold text-right">Created At</TableHead>
                                             <TableHead className="font-semibold text-right">Updated At</TableHead>
+                                            <TableHead className="font-semibold text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -202,6 +203,18 @@ function App() {
                                                 </TableCell>
                                                 <TableCell className="text-right font-mono text-muted-foreground text-xs">
                                                     {new Date(item.updated_at).toLocaleString()}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <a
+                                                        href={`http://127.0.0.1:8038/api/v1/vouchers/${item.guid}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        title="Download ownership voucher"
+                                                    >
+                                                        <Button variant="outline" size="icon-xs" type="button">
+                                                            <Download className="size-3" />
+                                                        </Button>
+                                                    </a>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
